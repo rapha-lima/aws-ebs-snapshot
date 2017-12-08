@@ -129,5 +129,3 @@ def lambda_handler(event, context):
         print(err)
         print("Error retrieving instances from AWS. ")
         raise err
-
-lambda_handler('teste', 'teste')

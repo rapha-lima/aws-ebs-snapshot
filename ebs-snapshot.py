@@ -99,11 +99,34 @@ def create_image_tags(image_id, instance_name, instance_id):
         print("Failure tagging Image: " + image_id)
         raise err
 
+def cleanup_old_backups():
+
+    filters = [{
+        'Name': 'tag:' + image_backup_tag_name,
+        'Values': ['true']
+    },]
+
+    try:
+
+        # Calls Amazon EC2 to retrieve all AMIs taggeds to backup process
+        response = ec2.describe_images(DryRun=False, Filters=filters)
+
+        if response['ResponseMetadata']['HTTPStatusCode'] == 200:
+            images = response['Images']
+
+            for image in images:
+                
+
+    except Exception as err:
+        print(err)
+        print("Failure retrieving images for deletion.")
+        raise err
+
 # --------------- Main handler ------------------
 
 def lambda_handler(event, context):
 
-    Filters = [{
+    filters = [{
         'Name': 'tag:' + instances_to_backup_tag_name,
         'Values': ['yes']
     },]
@@ -111,7 +134,7 @@ def lambda_handler(event, context):
     try:
 
         # Calls Amazon EC2 to retrieve all instances tagged to backup
-        response = ec2.describe_instances(DryRun=False, Filters=Filters)
+        response = ec2.describe_instances(DryRun=False, Filters=filters)
 
         if response['ResponseMetadata']['HTTPStatusCode'] == 200:
 

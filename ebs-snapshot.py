@@ -111,11 +111,30 @@ def cleanup_old_backups():
         # Calls Amazon EC2 to retrieve all AMIs taggeds to backup process
         response = ec2.describe_images(DryRun=False, Filters=filters)
 
+
+
         if response['ResponseMetadata']['HTTPStatusCode'] == 200:
             images = response['Images']
+            instances = []
+            instance_dict = {}
 
             for image in images:
-                
+                for tag in image['Tags']:
+                    if tag['Key'] == image_backup_instance_identifier_tag_name:
+                        instance_id = tag['Value']
+                        image_info = {
+                            'ImageId': image['ImageId'],
+                            'CurrentDate': image['CreationDate'],
+                            'BlockDeviceMappings': image['BlockDeviceMappings']
+                        }
+                        if instance_dict.get(instance_id):
+                            instance_dict[instance_id].append(image_info)
+                        else:
+                            instance_dict[instance_id] = [image_info]
+                            instances.append(instance_id)
+
+            for instance in instances:
+
 
     except Exception as err:
         print(err)

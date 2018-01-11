@@ -133,9 +133,6 @@ def cleanup_old_backups():
                             instance_dict[instance_id] = [image_info]
                             instances.append(instance_id)
 
-            for instance in instances:
-
-
     except Exception as err:
         print(err)
         print("Failure retrieving images for deletion.")

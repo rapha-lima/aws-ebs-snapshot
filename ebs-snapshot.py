@@ -111,8 +111,6 @@ def cleanup_old_backups():
         # Calls Amazon EC2 to retrieve all AMIs taggeds to backup process
         response = ec2.describe_images(DryRun=False, Filters=filters)
 
-
-
         if response['ResponseMetadata']['HTTPStatusCode'] == 200:
             images = response['Images']
             instances = []
@@ -124,7 +122,7 @@ def cleanup_old_backups():
                         instance_id = tag['Value']
                         image_info = {
                             'ImageId': image['ImageId'],
-                            'CurrentDate': image['CreationDate'],
+                            'CreationDate': image['CreationDate'],
                             'BlockDeviceMappings': image['BlockDeviceMappings']
                         }
                         if instance_dict.get(instance_id):
@@ -133,9 +131,67 @@ def cleanup_old_backups():
                             instance_dict[instance_id] = [image_info]
                             instances.append(instance_id)
 
+            for instance in instances:
+                image_instance_id = instance
+                instance_images = instance_dict[instance]
+                if len(instance_images) > num_backups_to_retain:
+                    instance_images = sorted(
+                        instance_images,
+                        key=lambda e: e['CreationDate']
+                    )
+                    k = len(instance_images)
+                    for instance_image in instance_images:
+                        if k > num_backups_to_retain:
+                            image_id = instance_image['ImageId']
+                            creation_date = instance_image['CreationDate']
+                            block_device_mappings = instance_image['BlockDeviceMappings']
+                            deregister_image(image_id, creation_date, block_device_mappings)
+                        k = k - 1
+                else:
+                    print("AMI Backup Cleanup not required for Instance: " + image_instance_id + ". Not enough backups in window yet.")
+
     except Exception as err:
         print(err)
         print("Failure retrieving images for deletion.")
+        raise err
+
+def deregister_image(image_id, creation_date, block_device_mappings):
+    print("Found Image: {}. Creation Date: {}".format(image_id, creation_date))
+
+    print("Deregistering Image: {}. Creation Date: {}".format(image_id, creation_date))
+
+    try:
+
+        # Calls Amazon EC2 to deregister image.
+        response = ec2.deregister_image(
+            ImageId=image_id,
+            DryRun=False
+        )
+
+        if response['ResponseMetadata']['HTTPStatusCode'] == 200:
+            print("Success deregistering image.")
+            if delete_snaphots:
+                for b in block_device_mappings:
+                    snapshot_id = b['Ebs']['SnapshotId']
+                    if snapshot_id:
+                        delete_snapshot(snapshot_id)
+
+    except Exception as err:
+        print(err)
+        print("Failure deregistering image.")
+        raise err
+
+def delete_snapshot(snapshot_id):
+
+    try:
+
+        # Calls Amazon EC2 to delete snapshot
+
+        print("Success deleting snapshot. Snapshot: " + snapshot_id + ".")
+
+    except Exception as err:
+        print(err)
+        print("Failure deleting snapshot. Snapshot: " + snapshot_id + ".")
         raise err
 
 # --------------- Main handler ------------------

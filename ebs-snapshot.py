@@ -186,8 +186,12 @@ def delete_snapshot(snapshot_id):
     try:
 
         # Calls Amazon EC2 to delete snapshot
-
-        print("Success deleting snapshot. Snapshot: " + snapshot_id + ".")
+        response = ec2.delete_snapshot(
+            SnapshotId=snapshot_id,
+            DryRun=False
+        )
+        if response['ResponseMetadata']['HTTPStatusCode'] == 200:
+            print("Success deleting snapshot. Snapshot: " + snapshot_id + ".")
 
     except Exception as err:
         print(err)

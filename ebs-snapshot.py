@@ -1,5 +1,6 @@
 import boto3 as boto3
 from datetime import datetime
+import json
 
 ec2 = boto3.client('ec2')
 
@@ -223,8 +224,10 @@ def lambda_handler(event, context):
         # Print response to console
         print(response)
 
-        return response
     except Exception as err:
         print(err)
         print("Error retrieving instances from AWS. ")
         raise err
+
+    # print('Starting cleanup process...')
+    # cleanup_old_backups()

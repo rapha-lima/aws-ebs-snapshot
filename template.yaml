@@ -1,0 +1,72 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+Description: 'Automate EBS snapshots'
+Resources:
+  AWSLambdaEBSAutoBackupRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: '/'
+      Policies:
+        -
+          PolicyName: 'EBSAutoBackupPolicy'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+            - Sid: Stmt1506103908000
+              Effect: Allow
+              Action:
+              - ec2:CreateImage
+              - ec2:CreateTags
+              - ec2:DeleteSnapshot
+              - ec2:DeregisterImage
+              - ec2:DescribeImages
+              - ec2:DescribeInstances
+              Resource: "*"
+            - Effect: Allow
+              Action:
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+              Resource: arn:aws:logs:*:*:*
+      RoleName: AWSLambdaEBSAutoBackupRole
+  EBSAutoBackup:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: ebs-snapshot.lambda_handler
+      Runtime: python2.7
+      Policies: !Ref AWSLambdaEBSAutoBackupRole
+      CodeUri: .
+      Timeout: 60
+  ScheduledRule:
+    Type: "AWS::Events::Rule"
+    Properties:
+      Description: "ScheduledRule"
+      ScheduleExpression: "cron(0 0 * * ? *)"
+      State: "ENABLED"
+      Targets:
+        -
+          Arn:
+            Fn::GetAtt:
+              - "LambdaFunction"
+              - "Arn"
+          Id: !Ref EBSAutoBackup
+  PermissionForEventsToInvokeLambda:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      FunctionName:
+        Ref: "LambdaFunction"
+      Action: "lambda:InvokeFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn:
+        Fn::GetAtt:
+          - "ScheduledRule"
+          - "Arn"

@@ -56,10 +56,6 @@ def create_image(instance):
                 instance_id = instance_id
             )
 
-        # Print response to console
-        print(response)
-
-        return response
     except Exception as err:
         print(err)
         print("Failure creating image request for Instance: " + instance_id)
@@ -91,10 +87,6 @@ def create_image_tags(image_id, instance_name, instance_id):
         if response ['ResponseMetadata']['HTTPStatusCode'] == 200:
             print("Success tagging Image: " + image_id)
 
-        # Print response to console
-        print(response)
-
-        return response
     except Exception as err:
         print(err)
         print("Failure tagging Image: " + image_id)
@@ -221,13 +213,10 @@ def lambda_handler(event, context):
                 for instance in instances_list:
                     create_image(instance)
 
-        # Print response to console
-        print(response)
-
     except Exception as err:
         print(err)
         print("Error retrieving instances from AWS. ")
         raise err
 
-    # print('Starting cleanup process...')
-    # cleanup_old_backups()
+    print('Starting cleanup process...')
+    cleanup_old_backups()
